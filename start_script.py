@@ -4,18 +4,22 @@ import logging
 import subprocess
 import obspython as obs
 
-logging.basicConfig(filename='logs.log', level=logging.INFO, filemode='a',
+script_dir = os.path.dirname(os.path.abspath(__file__))
+bat_path = os.path.join(script_dir, 'starter.bat')
+logs_path = os.path.join(script_dir, 'logs.log')
+
+
+logging.basicConfig(filename=logs_path, level=logging.INFO, filemode='a',
                     format="[%(asctime)s] :: %(levelname)s :: %(message)s")
 HOTKEY_NAME = "TEST SCRIPT"
 HOTKEY_ID = obs.OBS_INVALID_HOTKEY_ID
 
 
 def start():
-    script_dir = os.path.dirname(os.path.abspath(__file__))
     bat_path = os.path.join(script_dir, 'starter.bat')
 
     if os.path.exists(bat_path):
-        subprocess.Popen([bat_path, *sys.argv[1:]], creationflags=0x08000000)
+        subprocess.Popen([bat_path, *sys.argv[1:]])
         logging.info("Running starter.bat...")
     else:
         logging.error("Couldn't find starter.bat!")
@@ -31,10 +35,10 @@ def script_description():
 
 def script_load(settings):
     global HOTKEY_ID
-    HOTKEY_ID = obs.obs_hotkey_register_fronted(
+    HOTKEY_ID = obs.obs_hotkey_register_frontend(
         "testowy_skrypt_python_id",
         HOTKEY_NAME,
-        callback()
+        callback
     )
 
     save_array = obs.obs_data_get_array(settings, "testowy_skrypt_hotkey")
