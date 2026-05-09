@@ -7,3 +7,10 @@ An automated script for uploading OBS Studio recordings directly to Google Drive
 # Technologies
 - Python 3.x
 - Google API Python Client
+
+# How to start
+
+    - will be long
+
+#
+
