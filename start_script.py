@@ -1,8 +1,9 @@
 import os
-import sys
 import logging
 import subprocess
+import threading
 import obspython as obs
+
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 bat_path = os.path.join(script_dir, 'starter.bat')
@@ -11,42 +12,52 @@ logs_path = os.path.join(script_dir, 'logs.log')
 
 logging.basicConfig(filename=logs_path, level=logging.INFO, filemode='a',
                     format="[%(asctime)s] :: %(levelname)s :: %(message)s")
-HOTKEY_NAME = "TEST SCRIPT"
-HOTKEY_ID = obs.OBS_INVALID_HOTKEY_ID
 
 
-def start():
-    bat_path = os.path.join(script_dir, 'starter.bat')
+def on_event(event):
+    if event == obs.OBS_FRONTEND_EVENT_REPLAY_BUFFER_SAVED:
+        logging.info("Clip has been saved via replay buffer")
+        handle_last_replay()
+    elif event == obs.OBS_FRONTEND_EVENT_RECORDING_STOPPED:
+        logging.info("Clip has been saved via recording")
+        handle_last_recording()
 
-    if os.path.exists(bat_path):
-        subprocess.Popen([bat_path, *sys.argv[1:]])
-        logging.info("Running starter.bat...")
+
+def handle_last_replay():
+    file_path = obs.obs_frontend_get_last_replay()
+    logging.info(f"Replay path: {file_path}")
+
+    if file_path and os.path.exists(file_path):
+        logging.info(f"Path of saved clip by Replay Buffer: {file_path}")
+        run_starter_with_args(file_path)
     else:
-        logging.error("Couldn't find starter.bat!")
+        logging.warning("File path not found")
 
 
-def callback(pressed):
-    if pressed:
-        start()
+def handle_last_recording():
+    file_path = obs.obs_frontend_get_last_recording()
+    logging.info(file_path)
+
+    if file_path and os.path.exists(file_path):
+        logging.info(f"Path of saved clip by end of recording: {file_path}")
+        run_starter_with_args(file_path)
+    else:
+        logging.warning("File path not found")
+
+
+def run_starter_with_args(path):
+    full_path = os.path.abspath(path)
+    if os.path.exists(bat_path):
+        subprocess.Popen([bat_path, full_path], cwd=script_dir, creationflags=subprocess.CREATE_NO_WINDOW)
+        logging.info(f"Running starter.bat for: {full_path}")
+    else:
+        logging.error("Bat file not found")
+
+
+def script_load(settings):
+    obs.obs_frontend_add_event_callback(on_event)
+    logging.info("OBS Script is loaded and listen")
 
 
 def script_description():
-    return "Custom hotkey for testing my script in obs"
-
-def script_load(settings):
-    global HOTKEY_ID
-    HOTKEY_ID = obs.obs_hotkey_register_frontend(
-        "testowy_skrypt_python_id",
-        HOTKEY_NAME,
-        callback
-    )
-
-    save_array = obs.obs_data_get_array(settings, "testowy_skrypt_hotkey")
-    obs.obs_hotkey_load(HOTKEY_ID, save_array)
-    obs.obs_data_array_release(save_array)
-
-
-def script_save(settings):
-    save_array = obs.obs_hotkey_save(HOTKEY_ID)
-    obs.obs_data_set_array(settings, "testowy_skrypt_hotkey", save_array)
-    obs.obs_data_array_release(save_array)
+    return "Script for sending clips on google drive"
